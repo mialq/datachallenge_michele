@@ -1,2 +1,2 @@
-moto == 1.3.16
-boto3 == 1.16.7
+# Sem dependências externas em tempo de execução.
+# O projeto utiliza apenas a biblioteca padrão do Python.

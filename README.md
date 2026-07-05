@@ -1,96 +1,210 @@
+# Data Challenge — Data Quality, Athena DDL e Arquitetura AWS
 
-# Documentação do Projeto Data Challenge – Michele Teixeira
+Projeto desenvolvido por **Michele Teixeira** com foco em qualidade de dados, validação de eventos, automação de DDL para Amazon Athena e desenho de uma arquitetura de dados orientada a eventos na AWS.
 
-## Introdução
+> O objetivo deste repositório é demonstrar raciocínio de engenharia de dados, organização de código e decisões técnicas. As integrações com serviços AWS estão representadas de forma conceitual ou simulada; o projeto não provisiona infraestrutura real.
 
-Este documento descreve minha jornada ao abordar os exercícios 1, 2 e 3 do Projeto Data Challenge. O foco está na construção de um módulo de Data Quality, automação da criação de tabelas no AWS Athena, e a proposta de uma arquitetura de dados robusta.
+## Visão geral
 
-### Exercício 1: Módulo de Data Quality
+O projeto reúne quatro frentes:
 
-Iniciei o projeto definindo a estrutura básica dentro do diretório `exercicio1/`, concentrando-me em dois arquivos principais: `event_validator.py` e `schema.json`. O `schema.json` serviu como a base para validar a estrutura dos eventos de dados, garantindo sua qualidade.
+1. **Data Quality:** validação recursiva de eventos JSON contra um schema simplificado.
+2. **Athena DDL:** conversão automática de JSON Schema em `CREATE EXTERNAL TABLE`.
+3. **Arquitetura AWS:** proposta conceitual para ingestão, validação, desacoplamento, armazenamento e consulta.
+4. **Modelagem de tabelas:** dicionário de dados para domínios de clientes, contas e transações.
 
-**Desenvolvimento:**
+## Arquitetura proposta
 
-Implementei a função `validate_event(event, schema)` no arquivo `event_validator.py`. Essa função verifica se cada evento corresponde ao schema definido, atentando especialmente para dois aspectos:
+![Arquitetura conceitual do módulo de Data Quality](img/modulo-data-quality.png)
 
-- Asseguro que o tipo de cada campo do evento coincide com o especificado no schema.
-- Verifico que o evento não inclua campos não listados no schema.
+O diagrama apresenta uma proposta conceitual com serviços como Amazon SNS, Amazon SQS, AWS Lambda, Amazon Kinesis, Amazon S3, Amazon DynamoDB, AWS Glue e Amazon Athena.
 
-**Execução:**
+### Papel dos principais componentes
 
-Para testar minha implementação, executei `python main.py`, que simula o processo de validação de eventos, assegurando que eles atendam aos critérios definidos.
+| Componente | Papel no desenho |
+|---|---|
+| Fonte JSON | Origem dos eventos |
+| Amazon SNS | Distribuição de mensagens para consumidores |
+| Amazon SQS | Desacoplamento, buffer e processamento assíncrono |
+| AWS Lambda | Validação e processamento de eventos |
+| Amazon Kinesis | Fluxo de eventos para processamento em streaming |
+| Amazon S3 | Armazenamento de dados para consumo analítico |
+| Amazon DynamoDB | Persistência de baixa latência para dados operacionais |
+| AWS Glue | Catálogo e metadados |
+| Amazon Athena | Consulta SQL sobre dados armazenados no S3 |
 
-### Exercício 2: Automação de Criação de Tabelas no AWS Athena
+O arquivo editável do diagrama está disponível em [`modulo_data_quality_arquitetura.drawio`](modulo_data_quality_arquitetura.drawio).
 
-Avancei para o `exercicio2/`, onde meu objetivo era automatizar a criação de tabelas no AWS Athena. Utilizei o mesmo `schema.json` do Exercício 1 como fundamento.
+## Estrutura do repositório
 
-**Desenvolvimento:**
+```text
+.
+├── desafios/
+│   ├── exercicio1/
+│   │   ├── event_validator.py
+│   │   ├── main.py
+│   │   ├── schema.json
+│   │   └── test_event_validator.py
+│   ├── exercicio2/
+│   │   ├── json_schema_to_athena.py
+│   │   ├── main.py
+│   │   ├── schema.json
+│   │   └── test_json_schema_to_athena.py
+│   └── exercicio4/
+│       └── challenge_tables.xlsx
+├── img/
+│   └── modulo-data-quality.png
+├── .gitignore
+├── modulo_data_quality_arquitetura.drawio
+├── requirements.txt
+└── README.md
+```
 
-No arquivo `json_schema_to_athena.py`, desenvolvi uma função que traduz o `schema.json` em uma query SQL de criação de tabela para o Athena. Este passo exigiu uma compreensão profunda da documentação do AWS Athena, especialmente no que se refere à sintaxe de criação de tabelas.
+## Exercício 1 — Módulo de Data Quality
 
-**Execução:**
+O módulo valida eventos de forma recursiva com base em `schema.json`.
 
-Após implementar a função, executei `python main.py` para testar a automação, verificando se a query SQL gerada estava correta e alinhada com as especificações do Athena.
+### Regras implementadas
 
-### Exercício 3: Proposta de Arquitetura de Dados
+- validação de campos obrigatórios;
+- validação de tipos;
+- validação de objetos aninhados;
+- rejeição de campos extras não definidos no schema;
+- tratamento correto do caso particular de Python em que `bool` é subtipo de `int`;
+- mensagens de erro com o caminho do campo inválido.
 
-Finalmente, dediquei-me ao desafio de propor uma arquitetura de dados completa. Meu objetivo era abordar soluções de ingestão, pipeline ETL, soluções de armazenamento, e o catálogo de dados.
+### Exemplo de evento válido
 
-**Desenvolvimento:**
+```json
+{
+  "eid": "12345",
+  "documentNumber": "67890",
+  "name": "Renata",
+  "age": 30,
+  "address": {
+    "street": "Rua da Alegria",
+    "number": 100,
+    "mailAddress": true
+  }
+}
+```
 
-Utilizei ferramentas de desenho como Draw.io para esboçar a arquitetura, fazendo escolhas conscientes sobre cada componente:
+### Executar
 
-- **Solução de Ingestão:** Defini como os dados seriam coletados e importados para o sistema.
-- **Pipeline ETL:** Projetei o processo de transformação dos dados para prepará-los para análise.
-- **Soluções de Armazenamento:** Especifiquei onde os dados seriam armazenados, considerando escalabilidade e acesso.
-- **Catálogo de Dados:** Desenvolvi uma estratégia para gerenciar metadados e facilitar a descoberta de dados.
+A partir da raiz do projeto:
 
-**Documentação:**
+```bash
+python desafios/exercicio1/main.py
+```
 
-Para cada componente da arquitetura, providenciei uma descrição detalhada, explicando sua função e contribuição para os objetivos gerais de negócios e dados.
+O exemplo demonstra um evento válido e outro inválido.
 
-## Considerações Finais
+## Exercício 2 — Geração de DDL para Amazon Athena
 
-Espero que este documento ofereça uma visão clara da minha abordagem aos desafios propostos, refletindo as decisões, implementações e aprendizados ao longo deste projeto.
+O módulo lê o JSON Schema e converte os campos para tipos compatíveis com uma DDL de tabela externa no Athena.
 
----
+### Mapeamentos principais
 
-# ARQUITETURA DO PROJETO – Módulo Data Quality
+| JSON Schema | Athena/Hive DDL |
+|---|---|
+| `string` | `STRING` |
+| `integer` | `INT` |
+| `number` | `DOUBLE` |
+| `boolean` | `BOOLEAN` |
+| `object` | `STRUCT<...>` |
+| `array` | `ARRAY<...>` |
 
-![](img/modulo-data-quality.png)
+A DDL gerada inclui:
 
-Arquitetura construída utilizando serviços AWS, proporcionando um sistema altamente disponível, escalável e com baixa latência para o processamento de eventos de dados críticos para o negócio. 
-Essa arquitetura do Módulo Data Quality foi projetada para garantir a validação eficiente de eventos de dados e fornecer uma plataforma robusta para análise de dados. 
-Abaixo está a descrição detalhada de cada componente e seu papel no pipeline de dados.
+- `CREATE EXTERNAL TABLE IF NOT EXISTS`;
+- colunas derivadas do schema;
+- partições por `year`, `month` e `day`;
+- armazenamento em Parquet;
+- `LOCATION` configurável no Amazon S3.
 
-## 1. Fonte de Dados (.json)
-- **Descrição**: Eventos de dados gerados em formato JSON.
+### Executar
 
-## 2. Amazon SNS
-- **Descrição**: Distribuição de eventos de dados para múltiplos assinantes.
+```bash
+python desafios/exercicio2/main.py
+```
 
-## 3. Amazon SQS
-- **Descrição**: Enfileiramento seguro e confiável de eventos de dados.
+> Importante: a execução no Athena é **simulada**. O código gera e exibe a DDL, mas não envia a consulta para uma conta AWS.
 
-## 4. AWS Lambda (Função de Validação de Dados)
-- **Descrição**: Validação dos dados conforme um esquema JSON definido.
+## Exercício 4 — Dicionário de tabelas
 
-## 5. Amazon DynamoDB
-- **Descrição**: Armazenamento de dados validados para acesso e consulta rápidos.
+O arquivo [`challenge_tables.xlsx`](desafios/exercicio4/challenge_tables.xlsx) documenta estruturas de dados para seis domínios:
 
-## 6. AWS Glue
-- **Descrição**: Gerenciamento de metadados e preparação de dados para análise.
+- `customer`;
+- `account`;
+- `bankslip`;
+- `pix_send`;
+- `pix_received`;
+- `p2p_tef`.
 
-## 7. Amazon Athena
-- **Descrição**: Execução de consultas SQL diretamente sobre os dados armazenados no Amazon S3.
+Cada aba registra nome da coluna, tipo de dado, indicação de chave de partição e descrição funcional.
 
-## 8. Usuário Final
-- **Descrição**: Interação com insights e análises de dados através do Athena.
+## Como executar o projeto
 
-## 9. Amazon S3 Bucket
-- **Descrição**: Armazenamento de dados brutos ou data lake.
+### Pré-requisito
 
-## 10. Amazon Kinesis
-- **Descrição**: Capacidade de processar dados em streaming para suportar análises em tempo real e batch.
+- Python 3.10 ou superior.
 
+O projeto utiliza somente a biblioteca padrão do Python. Portanto, não há dependências externas obrigatórias.
 
+### Opcional: criar ambiente virtual
+
+```bash
+python -m venv .venv
+```
+
+No Windows:
+
+```bash
+.venv\Scripts\activate
+```
+
+No Linux/macOS:
+
+```bash
+source .venv/bin/activate
+```
+
+### Executar os testes
+
+A partir da raiz do repositório:
+
+```bash
+python -m unittest discover -s desafios -p "test_*.py" -v
+```
+
+## Decisões técnicas
+
+### Validador manual
+
+A validação foi implementada manualmente para demonstrar a lógica de Data Quality e recursividade. Em produção, uma biblioteca completa de JSON Schema pode ser mais adequada quando houver necessidade de suportar integralmente a especificação.
+
+### Rejeição de campos extras
+
+O módulo adota comportamento estrito: campos não definidos no schema invalidam o evento. Essa decisão ajuda a detectar mudanças inesperadas de contrato.
+
+### DDL com `STRUCT`
+
+Objetos aninhados são convertidos para estruturas `STRUCT`, preservando a hierarquia do evento na definição da tabela.
+
+### Localização S3 configurável
+
+O caminho padrão é apenas um placeholder e deve ser substituído por uma localização real antes de uma execução em AWS.
+
+## Melhorias futuras
+
+- executar a DDL realmente no Athena com `boto3`;
+- adicionar observabilidade e métricas de qualidade;
+- separar eventos válidos e inválidos em filas ou destinos específicos;
+- implementar DLQ e política de retentativa;
+- provisionar infraestrutura com Terraform ou AWS CDK;
+- adicionar pipeline de CI para testes e análise estática.
+
+## Autora
+
+**Michele Teixeira**  
+Engenharia de Dados | Data Quality | Cloud | Arquitetura de Dados
